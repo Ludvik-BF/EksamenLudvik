@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:stable
+    ports:
+      - "80:80"
+    volumes:
+      - ./Infra/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+    networks:
+      - internal
+
+  web:
+    image: node:18
+    working_dir: /usr/src/app/js
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/js/node_modules
+    command: sh -c "cd /usr/src/app/js && npm install --no-audit --no-fund --silent && npm start"
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=Lykke26!
+      - DB_NAME=produkter_db
+      - DB_PORT=5432
+    depends_on:
+      - db
+    networks:
+      - internal
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: produkter_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Lykke26!
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  db_data:
+
+networks:
+  internal:
+    driver: bridge

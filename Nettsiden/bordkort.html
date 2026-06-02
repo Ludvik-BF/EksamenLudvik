@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>Bordkort</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+        <h1>Bordkort</h1>
+        <nav>
+                <a href="index.html">Hjem</a>
+                <a href="musikere.html">Musikere</a>
+                <a href="blomster.html">Blomster</a>
+        </nav>
+
+        <section>
+                <h2>Legg til bordkort</h2>
+                <form id="addForm">
+                        <input name="navn" placeholder="Navn" required>
+                        <input name="pris" placeholder="Pris" required>
+                        <input name="bilde_url" placeholder="Bilde URL">
+                        <input name="beskrivelse" placeholder="Beskrivelse">
+                        <button>Legg til</button>
+                </form>
+        </section>
+
+        <section id="list"></section>
+
+        <script>
+        const kategori = 'bordkort';
+        async function load(){
+            const res = await fetch('/api/produkter?kategori='+kategori);
+            const items = await res.json();
+            const list = document.getElementById('list');
+            list.innerHTML = items.map(i=>`
+                <div class="card">
+                    <h3>${i.navn}</h3>
+                    <p>${i.beskrivelse||''}</p>
+                    <p><small>Pris: ${i.pris||''} kr</small></p>
+                    ${i.bilde_url?`<img src="${i.bilde_url}" alt="${i.navn}">`:''}
+                    <p><button data-id="${i.produkt_id}" class="del">Slett</button></p>
+                </div>`).join('');
+            document.querySelectorAll('.del').forEach(b=>b.onclick=async e=>{const id=b.dataset.id; await fetch('/api/produkter/'+id,{method:'DELETE'}); load();});
+        }
+        document.getElementById('addForm').onsubmit = async e=>{
+            e.preventDefault();
+            const f = Object.fromEntries(new FormData(e.target));
+            f.pris = parseFloat(f.pris)||0;
+            f.kategori = kategori;
+            await fetch('/api/produkter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)});
+            e.target.reset();
+            load();
+        }
+        load();
+        </script>
+</body>
+</html>

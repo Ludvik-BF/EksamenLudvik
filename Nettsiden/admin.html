@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <title>Admin - Produkter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Admin - Produkter</h1>
+  <nav>
+    <a href="index.html">Hjem</a>
+  </nav>
+
+  <section>
+    <h2>Legg til / Rediger</h2>
+    <form id="form">
+      <input name="produkt_id" type="hidden">
+      <input name="navn" placeholder="Navn" required>
+      <input name="pris" placeholder="Pris" required>
+      <input name="bilde_url" placeholder="Bilde URL">
+      <input name="beskrivelse" placeholder="Beskrivelse">
+      <select name="kategori">
+        <option value="musikere">Musikere</option>
+        <option value="bordkort">Bordkort</option>
+        <option value="blomster">Blomster</option>
+      </select>
+      <button id="save">Lagre</button>
+      <button id="cancel" type="button">Avbryt</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Alle produkter</h2>
+    <div id="list"></div>
+  </section>
+
+<script>
+async function load(){
+  const res = await fetch('/api/produkter');
+  const items = await res.json();
+  const list = document.getElementById('list');
+  list.innerHTML = items.map(i=>`
+    <div class="card" data-id="${i.produkt_id}">
+      <strong>${i.navn}</strong> <small>(${i.kategori||''})</small>
+      <p>${i.beskrivelse||''}</p>
+      <p>Pris: ${i.pris||''} kr</p>
+      ${i.bilde_url?`<img src="${i.bilde_url}" alt="${i.navn}">`:''}
+      <p>
+        <button class="edit" data-id="${i.produkt_id}">Rediger</button>
+        <button class="del" data-id="${i.produkt_id}">Slett</button>
+      </p>
+    </div>
+  `).join('');
+  document.querySelectorAll('.del').forEach(b=>b.onclick=async e=>{if(!confirm('Slett?'))return; await fetch('/api/produkter/'+b.dataset.id,{method:'DELETE'}); load();});
+  document.querySelectorAll('.edit').forEach(b=>b.onclick=async e=>{const id=b.dataset.id; const r=await fetch('/api/produkter/'+id); const d=await r.json(); fillForm(d);});
+}
+function fillForm(d){
+  const f=document.getElementById('form');
+  f.produkt_id.value=d.produkt_id||'';
+  f.navn.value=d.navn||'';
+  f.pris.value=d.pris||'';
+  f.bilde_url.value=d.bilde_url||'';
+  f.beskrivelse.value=d.beskrivelse||'';
+  f.kategori.value=d.kategori||'musikere';
+}
+
+document.getElementById('form').onsubmit = async function(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  data.pris = parseFloat(data.pris)||0;
+  if(data.produkt_id){
+    await fetch('/api/produkter/'+data.produkt_id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  } else {
+    await fetch('/api/produkter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  }
+  e.target.reset();
+  load();
+}
+
+document.getElementById('cancel').onclick = function(){ document.getElementById('form').reset(); }
+
+load();
+</script>
+</body>
+</html>
